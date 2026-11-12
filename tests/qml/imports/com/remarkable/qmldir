@@ -1,0 +1,2 @@
+module com.remarkable
+singleton DocumentImporter 1.0 DocumentImporter.qml

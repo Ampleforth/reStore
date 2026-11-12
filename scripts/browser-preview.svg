@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1100" viewBox="0 0 1000 1100">
+<rect width="1000" height="1100" fill="white"/>
+<g font-family="DejaVu Sans,sans-serif" fill="black">
+<text x="70" y="125" font-size="37" font-weight="bold">Browser verification</text>
+<text x="70" y="195" font-size="25">Complete the verification shown by the website.</text>
+<rect x="70" y="720" width="860" height="150" rx="8" fill="#eeeeee" stroke="black" stroke-width="2"/>
+<rect x="100" y="765" width="55" height="55" rx="4" fill="white" stroke="black" stroke-width="3"/>
+<text x="185" y="803" font-size="28">CAPTCHA content appears here</text>
+<text x="70" y="500" font-size="23">Swipe to reach content farther down the page.</text>
+<text x="70" y="1000" font-size="21">Illustrative verification page for the UI preview</text>
+</g></svg>

@@ -1,0 +1,17 @@
+<RCC><qresource prefix="/">
+<file alias="qml/Main.qml">../qml/Main.qml</file>
+<file alias="qml/Action.qml">../qml/Action.qml</file>
+<file alias="qml/AppText.qml">../qml/AppText.qml</file>
+<file alias="qml/DirectionIcon.qml">../qml/DirectionIcon.qml</file>
+<file alias="qml/CheckMark.qml">../qml/CheckMark.qml</file>
+<file alias="qml/fonts/DejaVuSans.ttf">../qml/fonts/DejaVuSans.ttf</file>
+<file alias="qml/fonts/DejaVuSans-Bold.ttf">../qml/fonts/DejaVuSans-Bold.ttf</file>
+<file alias="qml/fonts/NotoSansSymbols2-Regular.ttf">../qml/fonts/NotoSansSymbols2-Regular.ttf</file>
+<file alias="qml/ToolbarButton.qml">../qml/ToolbarButton.qml</file>
+<file alias="qml/TouchKeyboard.qml">../qml/TouchKeyboard.qml</file>
+<file alias="qml/ChoicePicker.qml">../qml/ChoicePicker.qml</file>
+<file alias="qml/FolderPicker.qml">../qml/FolderPicker.qml</file>
+<file alias="qml/BookCard.qml">../qml/BookCard.qml</file>
+<file alias="qml/NativeImport.qml">../qml/NativeImport.qml</file>
+<file alias="qml/books.svg">../qml/books.svg</file>
+</qresource></RCC>

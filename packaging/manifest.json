@@ -1,0 +1,11 @@
+{
+  "id":"farm.virus.archive-books",
+  "name":"reStore",
+  "loadsBackend":true,
+  "entry":"/qml/Main.qml",
+  "supportsScaling":true,
+  "canHaveMultipleFrontends":false,
+  "aspectRatio":"auto",
+  "supportsRotation":false,
+  "width":"auto"
+}

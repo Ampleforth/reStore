@@ -1,0 +1,32 @@
+name: Prepare release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev librsvg2-bin python3-bs4 libarchive-tools
+      - name: Check tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: test "${GITHUB_REF#refs/tags/v}" = "$(cat VERSION)"
+      - name: Build release assets
+        env:
+          RCC: /usr/lib/qt6/libexec/rcc
+        run: ./scripts/release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reStore-release
+          path: dist/release/*
+          if-no-files-found: error

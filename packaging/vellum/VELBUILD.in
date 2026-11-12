@@ -1,0 +1,47 @@
+maintainer="Ampleforth <213837259+Ampleforth@users.noreply.github.com>"
+pkgname=restore
+pkgver=@VERSION@
+pkgrel=0
+upstream_author="Ampleforth"
+category="apps"
+pkgdesc="Native Anna's Archive search and EPUB/PDF downloads for reMarkable 2"
+url="https://github.com/Ampleforth/reStore"
+arch="armv7"
+license="GPL-3.0-only"
+depends="rm2 appload>=0.5.3"
+options="!check !fhs !strip"
+readmeurl="https://raw.githubusercontent.com/$upstream_author/reStore/v$pkgver/README.md"
+source="$pkgname-$pkgver.tar.gz::$url/releases/download/v$pkgver/reStore-$pkgver-source.tar.gz"
+builddir="$srcdir/reStore-$pkgver"
+image="ghcr.io/toltec-dev/golang:v4.0"
+
+build() {
+	apt-get update
+	apt-get install -y --no-install-recommends qt6-base-dev librsvg2-bin python3 python3-bs4 libarchive-tools
+	cd "$builddir"
+	GOFLAGS=-mod=vendor GOTOOLCHAIN=auto RCC=/usr/lib/qt6/libexec/rcc \
+		RESTORE_ARCHIVE=0 ./scripts/build.sh
+}
+
+package() {
+	local bundle="$builddir/dist/archive-books"
+	local dest="$pkgdir/home/root/xovi/exthome/appload/archive-books"
+	local notices="$pkgdir/home/root/.vellum/licenses/$pkgname"
+	local file
+	install -Dm755 "$bundle/backend/entry" "$dest/backend/entry"
+	for file in manifest.json resources.rcc icon.png README.md; do
+		install -Dm644 "$bundle/$file" "$dest/$file"
+	done
+	# Preserve executable modes and Debian symlinks; never package live state.
+	mkdir -p "$dest/runtime"
+	cp -a "$bundle/runtime/." "$dest/runtime/"
+	for file in LICENSE LICENSE.upstream.md THIRD_PARTY_NOTICES.md; do
+		install -Dm644 "$bundle/$file" "$notices/$file"
+	done
+	for file in "$bundle"/licenses/*; do
+		install -Dm644 "$file" "$notices/licenses/${file##*/}"
+	done
+	printf '%s\n' "$url/releases/tag/v$pkgver" > "$notices/SOURCES"
+}
+
+sha512sums='@SOURCE_SHA512@  restore-@VERSION@.tar.gz'

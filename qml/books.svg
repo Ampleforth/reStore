@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="9" fill="white"/>
+  <!-- Outlined letterform keeps the launcher independent of installed fonts. -->
+  <path fill="black" fill-rule="evenodd" d="M25 5h7l17 45h5v6H32v-6h6l-4-11H17l-4 11h6v6H2v-6h5L25 5zm1 12-7 17h13l-6-17z"/>
+  <!-- White surround separates the bag from the large A at small icon sizes. -->
+  <path d="M39 41v-1a9 7 0 0 1 18 0v1h5l2 21H30l2-21h7z" fill="white" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M35 43h25l2 17H33l2-17z" fill="white" stroke="black" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M42 46v-5c0-3 2-5 6-5s6 2 6 5v5" fill="none" stroke="black" stroke-width="2.8" stroke-linecap="round"/>
+</svg>
