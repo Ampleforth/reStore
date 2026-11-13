@@ -52,4 +52,4 @@ package() {
 		"$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }
 
-sha512sums='97df0129a7dd3245b19d73a58b683324ea3f561ba3c2b74fb521f9264466aa048df2c258004801c11b9c1859d28eae48d7278eb688ab2197487e58aa7f9a31b5  restore-0.1.1.tar.gz'
+sha512sums='e39dd114e88a275b684f1b5dc6529777fcb5f0ae53d1cfe2bfff0859c7767390943ea2d361623003ce5ba8f08bc1958b88e69541cdfbe338461f0f0521c515f5  restore-0.1.1.tar.gz'
