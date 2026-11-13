@@ -17,8 +17,8 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
           cache: false
@@ -26,7 +26,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qt6-base-dev librsvg2-bin python3-bs4 libarchive-tools
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4.4.0
         if: matrix.arch == 'armv7'
         with:
           platforms: arm
@@ -48,8 +48,8 @@ jobs:
     needs: runtime
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
           cache: false
@@ -64,7 +64,7 @@ jobs:
         env:
           RCC: /usr/lib/qt6/libexec/rcc
         run: ./scripts/release.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: reStore-release
           path: dist/release/*
