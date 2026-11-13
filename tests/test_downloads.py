@@ -38,7 +38,7 @@ class DownloadTests(unittest.TestCase):
             (Path(folder)/'download').write_bytes(data)
             browser=self.browser(folder)
             browser.book={'url':'https://example.org/md5/'+hashlib.md5(data).hexdigest()}
-            browser.slow_links={'https://example.org/slow'}
+            browser.download_links={'https://example.org/slow'}
             browser.call=lambda *args:[]
             browser.go=lambda url:self.fail('A matching cached book should not be downloaded again')
             self.assertEqual(browser.start('https://example.org/slow')['state'],'complete')

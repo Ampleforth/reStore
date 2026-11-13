@@ -64,7 +64,8 @@ include `qt6-declarative-dev-tools`, `qml6-module-qtquick`,
 `qml6-module-qtqml-workerscript` and `qml6-module-qtqml-models`.
 The browser smoke test needs a matching desktop `chromium`/`chromedriver` pair.
 It uses local controlled fixture pages, never downloads books from Anna's Archive,
-and verifies cookies, slow links, countdowns, extensionless transfers, byte
+and verifies cookies, paid login, invalid keys, login CAPTCHA interruptions,
+fast and slow links, countdowns, extensionless transfers, byte
 progress, verification input and cross-origin text-field focus.
 
 Hardware checks remain necessary for native importing, firmware compatibility,
@@ -78,7 +79,7 @@ a user's tablet or restart Xochitl to run acceptance checks without permission.
 ```
 
 The script renders the actual QML through test-only AppLoad/import mocks at
-1404×1872. It refreshes all ten screen images and the icon. Multiple sample books,
+1404×1872. It refreshes all fourteen screen images and the icon. Multiple sample books,
 grayscale covers and illustrative metadata are supplied by `scripts/preview.qml`.
 No live account, cookies or download cache are used. `docs/covers/SOURCES.md`
 records cover attribution. Optional `QML=/path/to/qml` overrides the renderer.
@@ -141,3 +142,13 @@ ARM64 Linux host and its ARM64 CI runner, and on the reMarkable 2's installed
 ARMv7 runtime using the private fixture runner. These checks cover browser
 behavior and ABI compatibility; they do not prove native document import or
 UI layout on a physical aarch64 tablet.
+
+
+For v0.2.0 preparation, the Go race tests, AppLoad lifecycle test, Python tests,
+QML tests and the paid-account browser fixture passed with the host's native
+Chromium/ChromeDriver. The on-tablet UI update and local settings API were checked
+on reMarkable 2. No live paid key was used in automated tests, and physical
+aarch64 tablet acceptance remains outstanding. A local scratch-container run of
+the bundled ARM64 browser timed out before the fixture began; unchanged v0.1.1
+code reproduced that startup timeout. Keep that limitation separate from native
+host coverage and inspect the release workflow's target-runtime results.

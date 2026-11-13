@@ -1,6 +1,6 @@
 maintainer="Ampleforth <213837259+Ampleforth@users.noreply.github.com>"
 pkgname=restore
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=0
 upstream_author="Ampleforth"
 category="apps"
@@ -52,4 +52,4 @@ package() {
 		"$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }
 
-sha512sums='e39dd114e88a275b684f1b5dc6529777fcb5f0ae53d1cfe2bfff0859c7767390943ea2d361623003ce5ba8f08bc1958b88e69541cdfbe338461f0f0521c515f5  restore-0.1.1.tar.gz'
+sha512sums='c769309ee632437ac0e2fae5ed64602da2c9d6c18503dd61c11024b7a5915c469cd22bff23160662e6bdc4b9254df60373d96ffb2d570d891a9e019f48472c73  restore-0.2.0.tar.gz'

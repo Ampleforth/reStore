@@ -1,5 +1,20 @@
 # Troubleshooting
 
+## JSON.parse: Parse error
+
+Older UI code tried to parse every local-service response as JSON, including
+empty connection failures. This message by itself does not identify the cause.
+Version 0.2.0 reports the endpoint and HTTP status, distinguishes
+connection failures from empty or invalid responses, and briefly retries the
+initial settings read while the local service starts.
+
+For an issue, include the tablet model, firmware, reStore version, the step that
+triggered the error, and the full displayed message. If the service cannot start,
+check that its backend matches the tablet architecture, is executable, and comes
+from the same release as the UI. A backend launch or configuration error can happen
+before `runtime/engine.log` exists; that file covers the browser worker. Do not
+share configuration files or browser profiles, which may contain account secrets.
+
 ## A CAPTCHA keeps appearing
 
 Complete each step the website requests. Use Continue if automatic continuation
@@ -33,7 +48,7 @@ Inspect the app's `runtime/engine.log`. `runtime/app/server.py` and `parser.py`
 need mode 0644 so the unprivileged browser worker can read them; the backend
 needs mode 0755. Release builds and the Vellum recipe enforce these permissions.
 A private update made with a restrictive umask can accidentally remove access.
-The browser runtime must contain the bundled ARMv7 binaries.
+The browser runtime must match the tablet architecture: ARMv7 or aarch64.
 
 ## The tablet UI reloads when closing
 

@@ -21,7 +21,8 @@ import (
 )
 
 type Config struct {
-	Folder string `json:"folder"`
+	Folder    string `json:"folder"`
+	SecretKey string `json:"secretKey,omitempty"`
 }
 type Service struct {
 	mu                                 sync.Mutex
@@ -61,7 +62,7 @@ func (s *Service) remote(ctx context.Context, method, path string, body io.Reade
 }
 func (s *Service) settings() (any, error) {
 	folders, err := libraryFolders(s.library)
-	return map[string]any{"folder": s.config.Folder, "folders": folders}, err
+	return map[string]any{"folder": s.config.Folder, "folders": folders, "hasSecretKey": s.config.SecretKey != ""}, err
 }
 func (s *Service) stage(ctx context.Context, title string) (any, error) {
 	if err := validFolder(s.library, s.config.Folder); err != nil {
@@ -220,7 +221,8 @@ func (s *Service) handler() http.Handler {
 		if r.URL.Path == "/settings" {
 			if r.Method == "POST" {
 				var v struct {
-					Folder string `json:"folder"`
+					Folder    *string `json:"folder"`
+					SecretKey *string `json:"secretKey"`
 				}
 				d := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
 				d.DisallowUnknownFields()
@@ -228,19 +230,29 @@ func (s *Service) handler() http.Handler {
 					respond(nil, err)
 					return
 				}
-				if err := validFolder(s.library, v.Folder); err != nil {
-					respond(nil, err)
-					return
-				}
 				next := s.config
-				next.Folder = v.Folder
+				if v.Folder != nil {
+					if err := validFolder(s.library, *v.Folder); err != nil {
+						respond(nil, err)
+						return
+					}
+					next.Folder = *v.Folder
+				}
+				if v.SecretKey != nil {
+					next.SecretKey = strings.TrimSpace(*v.SecretKey)
+					if len(next.SecretKey) > 256 || strings.ContainsAny(next.SecretKey, "\r\n") {
+						respond(nil, errors.New("secret key must be at most 256 characters on one line"))
+						return
+					}
+				}
 				if err := saveJSON(s.configPath, next); err != nil {
 					respond(nil, err)
 					return
 				}
 				s.config = next
 			} else if r.Method != "GET" {
-				w.WriteHeader(405)
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				json.NewEncoder(w).Encode(map[string]string{"error": "settings method not allowed"})
 				return
 			}
 			v, err := s.settings()
@@ -282,10 +294,11 @@ func (s *Service) handler() http.Handler {
 			respond(map[string]bool{"ok": true}, nil)
 			return
 		}
-		routes := map[string]string{"POST /search": "/search", "POST /book": "/book", "POST /start": "/start", "GET /browser": "/browser", "POST /browser": "/browser", "GET /status": "/status"}
+		routes := map[string]string{"POST /search": "/search", "POST /book": "/book", "POST /start": "/start", "GET /browser": "/browser", "POST /browser": "/browser", "GET /status": "/status", "POST /account": "/account", "POST /account/resume": "/account/resume", "POST /account/logout": "/account/logout"}
 		path, ok := routes[r.Method+" "+r.URL.Path]
 		if !ok {
-			w.WriteHeader(404)
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "unknown local reStore endpoint"})
 			return
 		}
 		if path == "/start" && s.staged != "" {
@@ -300,6 +313,17 @@ func (s *Service) handler() http.Handler {
 				return
 			}
 			body = strings.NewReader(string(b))
+		}
+		if path == "/account" {
+			var input struct {
+				Reuse bool `json:"reuse"`
+			}
+			if err := json.NewDecoder(body).Decode(&input); err != nil {
+				respond(nil, errors.New("invalid account request"))
+				return
+			}
+			data, _ := json.Marshal(map[string]any{"key": s.config.SecretKey, "reuse": input.Reuse})
+			body = strings.NewReader(string(data))
 		}
 		resp, err := s.remote(r.Context(), r.Method, path, body)
 		if err != nil {

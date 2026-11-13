@@ -101,17 +101,23 @@ def parse_book(html, url):
     bottom = soup.select_one('div.text-gray-800.font-semibold')
     b.update(metadata(text(bottom) + " " + text(desc) + " " + text(publisher)))
     links, fast_links, seen = [], [], set()
-    # Restrict to the actual Slow downloads section, excluding fast/external links.
+    # Walk to the next heading, even when multiple sections share a wrapper.
+    # This keeps fast, slow and external links in their own sections.
     for heading in soup.find_all(re.compile("^h[1-6]$")):
-        label=text(heading)
+        label = text(heading)
         if not re.search(r"(?:slow|fast)\s+downloads?", label, re.I):
             continue
-        destination=fast_links if re.search(r"fast\s+downloads?",label,re.I) else links
-        section = heading.parent
-        for a in section.select('a.js-download-link[href]'):
-            link = urljoin(url, a["href"])
+        destination = fast_links if re.search(r"fast\s+downloads?", label, re.I) else links
+        for node in heading.next_elements:
+            if getattr(node, "name", None) and re.match(r"^h[1-6]$", node.name):
+                break
+            if getattr(node, "name", None) != "a" or "js-download-link" not in node.get("class", []) or not node.get("href"):
+                continue
+            link = urljoin(url, node["href"])
+            if urlparse(link).scheme not in ("http", "https"):
+                continue
             if link not in seen:
-                destination.append({"label": text(a), "url": link})
+                destination.append({"label": text(node), "url": link})
                 seen.add(link)
     return {"book": b, "links": links, "slow_links":links, "fast_links":fast_links, "recognized": bool(title and (desc or bottom))}
 

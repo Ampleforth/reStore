@@ -24,7 +24,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode, urlparse, parse_qs
 from urllib.request import Request, urlopen
 
-from parser import BASE, challenge, parse_book, parse_search, parse_wait
+from parser import BASE, challenge, parse_book, parse_search, parse_wait, parse_account
 
 
 
@@ -55,7 +55,7 @@ class Browser:
         self.file_observed = {}
         self.book = None
         self.allowed_links = set()
-        self.slow_links = set()
+        self.download_links = set()
         self.cover_urls = set()
         self.cover_cache = {}
         self.verification_target = None
@@ -66,6 +66,9 @@ class Browser:
         self.selected_url = None
         self.followed_urls=set()
         self.last_follow=0
+        self.account = {"signed_in": False, "message": "Not signed in"}
+        self.pending_key = None
+        self.login_submitted = False
 
     def raw(self, method, path, data=None):
         req = Request(self.driver_url + path, data=None if data is None else json.dumps(data).encode(),
@@ -98,6 +101,7 @@ class Browser:
                 raise
 
     def search(self, query, page):
+        self.pending_key = None
         key = (query, page)
         if self.search_key != key or urlparse(self.url()).path != "/search":
             self.go(BASE + "/search?" + urlencode({"index":"", "page":page, "sort":"", "ext":["pdf","epub"], "display":"table", "q":query, "check":"1"}, doseq=True))
@@ -115,6 +119,7 @@ class Browser:
         return result
 
     def details(self, url):
+        self.pending_key = None
         if url not in self.allowed_links and (not self.book or url != self.book.get("url")):
             raise ValueError("Choose a book from search results")
         if self.url().split("#")[0] != url:
@@ -128,14 +133,18 @@ class Browser:
             raise ValueError("Book markup was not recognized; the site may have changed")
         self.verification_target = None
         self.book = result["book"]
-        self.slow_links = {link["url"] for link in result["links"]}
+        result["mode"] = "fast" if self.account["signed_in"] else "slow"
+        result["links"] = result["fast_links"] if self.account["signed_in"] else result["slow_links"]
+        if result["mode"] == "fast" and not result["links"]:
+            result["message"] = "No fast download links are available for this book or account. Check your membership in Settings."
+        self.download_links = {link["url"] for link in result["links"]}
         if self.book.get("cover"):
             self.cover_urls.add(self.book["cover"])
         return result
 
     def start(self, url):
-        if not self.book or url not in self.slow_links:
-            raise ValueError("Choose one of this book's slow download links")
+        if not self.book or url not in self.download_links:
+            raise ValueError("Choose one of this book's download links")
         self.transfer = {}
         self.file_observed = {}
         self.call("POST","/log",{"type":"performance"})
@@ -179,7 +188,7 @@ class Browser:
 
     def status(self):
         if not self.selected_url:
-            return {"state": "idle", "message": "Choose a slow download link"}
+            return {"state": "idle", "message": "Choose a download link"}
         self.verification_target = None
         self.transfer_events()
         candidates = [p for p in self.downloads.iterdir() if p.is_file() and p.name not in self.before]
@@ -228,6 +237,101 @@ class Browser:
             return {"state":"connecting","message":"Waiting for the file transfer to start"}
         return result
 
+    def login(self, key, reuse=False):
+        if not isinstance(key, str) or not 1 <= len(key.strip()) <= 256:
+            raise ValueError("Enter a secret key in Settings first")
+        # Do not reuse a previous account when the saved key has changed.
+        self.account = {"signed_in": False, "message": "Signing in"}
+        self.download_links.clear()
+        self.pending_key = key.strip()
+        self.login_deadline = time.monotonic() + 45
+        self.login_submitted = bool(reuse)
+        self.verification_target = "account"
+        try:
+            self.go(BASE + "/account/")
+            return self.resume_account()
+        except (RuntimeError, OSError):
+            self.pending_key = None
+            raise ValueError("Sign-in failed. Complete verification and try again.") from None
+
+    def account_challenge(self):
+        self.verification_target = "account"
+        return {"browser": True, "account": self.account,
+                "message": "Complete verification to sign in. reStore will continue automatically."}
+
+    def resume_account(self):
+        try:
+            current, base = urlparse(self.url()), urlparse(BASE)
+            if (current.scheme, current.netloc) != (base.scheme, base.netloc):
+                raise ValueError("Return to the official account page and retry sign-in")
+            html = self.html()
+            if challenge(html):
+                return self.account_challenge()
+            if current.path.rstrip("/") != "/account":
+                raise ValueError("Return to the official account page and retry sign-in")
+            parsed = parse_account(html)
+            if not parsed["recognized"]:
+                raise ValueError("The account page was not recognized; retry sign-in")
+            if self.pending_key and not parsed["signed_in"]:
+                self.login_submitted = False
+            if not self.login_submitted and self.pending_key:
+                # Submit the site's actual password form, preserving its hidden fields.
+                # A prior cookie session may belong to a different key; always submit this key.
+                if parsed["signed_in"]:
+                    self.call("DELETE", "/cookie")
+                    self.go(BASE + "/account/")
+                    if challenge(self.html()):
+                        return self.account_challenge()
+                submitted = self.call("POST", "/execute/sync", {
+                    "script": """const k=document.querySelector('form[action="/account/"] input[name="key"], form[action="/account"] input[name="key"]');
+                        if (!k || k.form.method.toLowerCase()!=='post' || new URL(k.form.action).origin!==location.origin) return false;
+                        k.value=arguments[0]; k.form.requestSubmit(); return true;""",
+                    "args": [self.pending_key]})
+                if not submitted:
+                    raise ValueError("The secret-key login form was not recognized")
+                self.login_submitted = True
+                self.pending_key = None
+                for _ in range(30):
+                    time.sleep(0.1)
+                    html = self.html()
+                    if challenge(html):
+                        return self.account_challenge()
+                    parsed = parse_account(html)
+                    if parsed["signed_in"] or parsed["invalid"]:
+                        break
+                else:
+                    return self.account_challenge()
+            if self.login_submitted and not parsed["signed_in"] and not parsed["invalid"] and time.monotonic() < self.login_deadline:
+                return self.account_challenge()
+            if parsed["invalid"] or not parsed["signed_in"]:
+                parsed["message"] = "The secret key was not accepted. Check the key and retry."
+            self.pending_key = None
+            self.account = {k: v for k, v in parsed.items() if k not in ("recognized", "invalid")}
+            self.verification_target = None
+            return {"account": self.account, "message": self.account["message"]}
+        except (RuntimeError, OSError, ValueError):
+            self.pending_key = None
+            self.account = {"signed_in": False, "message": "Sign-in failed. Check your connection and retry."}
+            self.verification_target = None
+            # WebDriver errors may include script arguments. Never return credentials.
+            raise ValueError(self.account["message"]) from None
+
+    def logout(self):
+        self.pending_key = None
+        self.login_submitted = False
+        self.verification_target = None
+        self.download_links.clear()
+        self.account = {"signed_in": False, "message": "Secret key removed. Using slow downloads."}
+        try:
+            self.go(BASE + "/account/")
+            current, base = urlparse(self.url()), urlparse(BASE)
+            if (current.scheme, current.netloc) != (base.scheme, base.netloc):
+                raise ValueError("Could not clear the account session; retry sign-out")
+            self.call("DELETE", "/cookie")
+        except (RuntimeError, OSError):
+            raise ValueError("Could not clear the account session; retry sign-out") from None
+        return {"account": self.account, "message": self.account["message"]}
+
     def verification_ready(self):
         target=self.verification_target
         if not target:return False
@@ -235,6 +339,7 @@ class Browser:
         html=self.html()
         if challenge(html):return False
         url=self.url()
+        if target=="account":return urlparse(url).path.rstrip("/")=="/account" and parse_account(html)["recognized"]
         if target=="search":return urlparse(url).path=="/search" and parse_search(html,url)["recognized"]
         if target=="book":return parse_book(html,url)["recognized"]
         return target=="download" and parse_wait(html,url)["state"] in ("waiting","ready")
@@ -371,6 +476,12 @@ class Handler(BaseHTTPRequestHandler):
                     result = b.search(query, page)
                 elif self.path == "/book" and self.command == "POST":
                     result = b.details(data["url"])
+                elif self.path == "/account" and self.command == "POST":
+                    result = b.login(data.get("key"), reuse=data.get("reuse") is True)
+                elif self.path == "/account/resume" and self.command == "POST":
+                    result = b.resume_account()
+                elif self.path == "/account/logout" and self.command == "POST":
+                    result = b.logout()
                 elif self.path == "/start" and self.command == "POST":
                     result = b.start(data["url"])
                 elif self.path == "/status" and self.command == "GET":

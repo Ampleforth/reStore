@@ -16,17 +16,22 @@ Window {
                {title:"The Wealth of Networks",author:"Yochai Benkler",publisher:"Yale University Press",year:"2006",format:"epub",size:"2.2 MB",pages:"515",language:"English [en]",cover:Qt.resolvedUrl("../docs/covers/wealth-networks.jpg"),url:"https://annas-archive.gl/md5/example4"},
                {title:"Against Intellectual Monopoly",author:"Michele Boldrin · David K. Levine",publisher:"Cambridge University Press",year:"2008",format:"epub",size:"1.2 MB",pages:"298",language:"English [en]",cover:Qt.resolvedUrl("../docs/covers/against-monopoly.jpg"),url:"https://annas-archive.gl/md5/example5"}]
         selectedBook:books[0]
-        links:[{label:"Slow server 1 · waitlist",url:"https://example.org/slow/1"},{label:"Slow server 2 · no waitlist",url:"https://example.org/slow/2"},{label:"Slow server 3",url:"https://example.org/slow/3"}]
+        downloadMode:Qt.application.arguments.indexOf("--fast")>=0?"fast":"slow"
+        links:downloadMode==="fast"?[{label:"Fast Partner Server #1",url:"https://example.org/fast/1"},{label:"Fast Partner Server #2",url:"https://example.org/fast/2"}]:[{label:"Slow server 1 · waitlist",url:"https://example.org/slow/1"},{label:"Slow server 2 · no waitlist",url:"https://example.org/slow/2"},{label:"Slow server 3",url:"https://example.org/slow/3"}]
         selectedLink:links[0].url
         folders:[{id:"",name:"My files",parent:""},{id:"books",name:"Books",parent:""},{id:"fiction",name:"Fiction",parent:"books"},{id:"nonfiction",name:"Nonfiction",parent:"books"}]
         folderID:"books"
-        view:Qt.application.arguments.indexOf("--home")>=0?"home":(Qt.application.arguments.indexOf("--book")>=0||Qt.application.arguments.indexOf("--links")>=0)?"book":(Qt.application.arguments.indexOf("--countdown")>=0||Qt.application.arguments.indexOf("--progress")>=0)?"download":Qt.application.arguments.indexOf("--folders")>=0?"settings":(Qt.application.arguments.indexOf("--browser")>=0||Qt.application.arguments.indexOf("--browser-keyboard")>=0)?"browser":"results"
+        view:Qt.application.arguments.indexOf("--home")>=0?"home":(Qt.application.arguments.indexOf("--book")>=0||Qt.application.arguments.indexOf("--links")>=0||Qt.application.arguments.indexOf("--fast")>=0)?"book":(Qt.application.arguments.indexOf("--countdown")>=0||Qt.application.arguments.indexOf("--progress")>=0||Qt.application.arguments.indexOf("--importing")>=0)?"download":(Qt.application.arguments.indexOf("--folders")>=0||Qt.application.arguments.indexOf("--settings")>=0||Qt.application.arguments.indexOf("--account-keyboard")>=0)?"settings":(Qt.application.arguments.indexOf("--browser")>=0||Qt.application.arguments.indexOf("--browser-keyboard")>=0)?"browser":"results"
+        hasSecretKey:Qt.application.arguments.indexOf("--settings")>=0
+        account:Qt.application.arguments.indexOf("--settings")>=0?({signed_in:true,message:"Paid membership active"}):({signed_in:false,message:"Not signed in"})
         previousView:"results"
         browserImage:Qt.resolvedUrl("browser-preview.svg")
         browserURL:"https://annas-archive.gl/search?q=intellectual+property"
-        keyboardOpen:Qt.application.arguments.indexOf("--keyboard")>=0||Qt.application.arguments.indexOf("--browser-keyboard")>=0
+        keyboardOpen:Qt.application.arguments.indexOf("--keyboard")>=0||Qt.application.arguments.indexOf("--browser-keyboard")>=0||Qt.application.arguments.indexOf("--account-keyboard")>=0
+        secretKeyDraft:Qt.application.arguments.indexOf("--account-keyboard")>=0?"example-key-1234":""
         folderOpen:Qt.application.arguments.indexOf("--folders")>=0
-        downloadStatus:Qt.application.arguments.indexOf("--progress")>=0?({state:"downloading",bytes:2516582,total:4194304}):({state:"waiting",seconds:137})
+        importing:Qt.application.arguments.indexOf("--importing")>=0
+        downloadStatus:importing?({state:"complete",bytes:4194304,total:4194304}):Qt.application.arguments.indexOf("--progress")>=0?({state:"downloading",bytes:2516582,total:4194304}):({state:"waiting",seconds:137})
         Component.onCompleted:{
             if(view==="home"){query="";message=""}
         }

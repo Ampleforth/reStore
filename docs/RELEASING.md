@@ -1,6 +1,6 @@
 # Release and Vellum packaging
 
-The initial repository is `Ampleforth/reStore`, version `0.1.1`. Release preparation
+The repository is `Ampleforth/reStore`, version `0.2.0`. Release preparation
 is local; publishing the repository/tag/assets is a separate action.
 
 ## Prepare assets
@@ -13,8 +13,8 @@ is local; publishing the repository/tag/assets is a separate action.
 
 | Asset | Purpose |
 |---|---|
-| `reStore-0.1.1-source.tar.gz` | Allowlisted reStore source under `reStore-0.1.1/`, including docs, tests, fonts and runtime lock |
-| `reStore-0.1.1-armv7.tar.gz` / `reStore-0.1.1-aarch64.tar.gz` | Architecture-specific installable `archive-books/`, including the static backend, QML resources and private Debian runtime |
+| `reStore-0.2.0-source.tar.gz` | Allowlisted reStore source under `reStore-0.2.0/`, including docs, tests, fonts and runtime lock |
+| `reStore-0.2.0-armv7.tar.gz` / `reStore-0.2.0-aarch64.tar.gz` | Architecture-specific installable `archive-books/`, including the static backend, QML resources and private Debian runtime |
 | `VELBUILD` | Generated, checksum-pinned Vellum recipe |
 | `SHA256SUMS` | SHA-256 checksums of the four assets above |
 
@@ -71,14 +71,13 @@ submit to Vellum. See [Vellum contributing](https://github.com/vellum-dev/vellum
 
 ## Prepare the GitHub repository
 
-This project lives inside a larger working directory. Do not push that parent
-repository or unrelated projects. The release source asset contains the intended
-standalone project contents and can be extracted to a separate directory for
-initialization. Also copy the generated `packaging/vellum/VELBUILD` into that
-checkout. Do not add `dist/` or private tablet files to Git.
+The project has its own Git checkout. Confirm `git rev-parse --show-toplevel`
+points to the reStore directory before committing or pushing. Do not push the
+parent workspace or unrelated tablet projects. Generated `dist/` files, live
+configuration and private tablet files stay outside Git.
 
 Push the reviewed source to `https://github.com/Ampleforth/reStore`, create tag
-`v0.1.1`, and attach the five files in `dist/release/` to the GitHub release. The
+`v0.2.0`, and attach the five files in `dist/release/` to the GitHub release. The
 checked-in workflow can prepare fresh assets for a tag or manual invocation; it
 uploads a workflow artifact and does not publish automatically. Preserve the
 exact source asset referenced by the Vellum checksum.

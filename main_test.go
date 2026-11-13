@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -94,5 +95,76 @@ func TestDeletedDestinationStopsDownload(t *testing.T) {
 	})
 	if _, err := s.stage(context.Background(), "Book"); err == nil {
 		t.Fatal("accepted deleted destination")
+	}
+}
+
+func TestSecretKeySettingsStayPrivateAndPreserveFolder(t *testing.T) {
+	s := serviceForTest(t)
+	id := "12345678-1234-1234-1234-123456789abc"
+	saveJSON(filepath.Join(s.library, id+".metadata"), map[string]string{"type": "CollectionType", "visibleName": "Books", "parent": ""})
+	s.config.Folder = id
+	call := func(method, path, body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.Header.Set("X-ArchiveBooks-Request", "app")
+		w := httptest.NewRecorder()
+		s.handler().ServeHTTP(w, r)
+		return w
+	}
+	key := "fixture-secret-key"
+	w := call("POST", "/settings", `{"secretKey":" `+key+` "}`)
+	if w.Code != 200 || s.config.SecretKey != key || s.config.Folder != id {
+		t.Fatal(w.Code, w.Body.String(), "settings not preserved")
+	}
+	for _, w = range []*httptest.ResponseRecorder{w, call("GET", "/settings", "")} {
+		if strings.Contains(w.Body.String(), key) || !strings.Contains(w.Body.String(), `"hasSecretKey":true`) {
+			t.Fatal("key exposed or saved state missing")
+		}
+	}
+	info, err := os.Stat(s.configPath)
+	if err != nil || info.Mode().Perm() != 0600 {
+		t.Fatal("configuration must be private", err)
+	}
+	saved, err := os.ReadFile(s.configPath)
+	if err != nil || !strings.Contains(string(saved), key) {
+		t.Fatal("key not persisted", err)
+	}
+	w = call("POST", "/settings", `{"folder":""}`)
+	if w.Code != 200 || s.config.SecretKey != key {
+		t.Fatal("folder update discarded key")
+	}
+	s.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		payload, _ := io.ReadAll(r.Body)
+		if r.URL.Path != "/account" || !strings.Contains(string(payload), key) || !strings.Contains(string(payload), `"reuse":true`) {
+			t.Fatal("saved key not passed privately to worker")
+		}
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"account":{"signed_in":true}}`))}, nil
+	})
+	w = call("POST", "/account", `{"reuse":true}`)
+	if w.Code != 200 || strings.Contains(w.Body.String(), key) {
+		t.Fatal(w.Body.String())
+	}
+	w = call("POST", "/settings", `{"secretKey":""}`)
+	if w.Code != 200 || s.config.SecretKey != "" || strings.Contains(w.Body.String(), `"hasSecretKey":true`) {
+		t.Fatal("key not cleared")
+	}
+}
+
+func TestLocalErrorRoutesReturnJSON(t *testing.T) {
+	s := serviceForTest(t)
+	for _, test := range []struct {
+		method, path string
+		status       int
+	}{{"GET", "/missing", 404}, {"DELETE", "/settings", 405}} {
+		r := httptest.NewRequest(test.method, test.path, nil)
+		r.Header.Set("X-ArchiveBooks-Request", "app")
+		w := httptest.NewRecorder()
+		s.handler().ServeHTTP(w, r)
+		if w.Code != test.status || w.Header().Get("Content-Type") != "application/json" {
+			t.Fatal(w.Code, w.Header())
+		}
+		var value map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &value); err != nil || value["error"] == "" {
+			t.Fatal("missing JSON error", w.Body.String(), err)
+		}
 	}
 }

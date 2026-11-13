@@ -25,11 +25,33 @@ book_id='a'*32
 
 class Fixture(BaseHTTPRequestHandler):
     started=None
+    account_challenge=False
+    post_challenge=False
+    submitted_keys=[]
+    def do_POST(self):
+        if urlparse(self.path).path != '/account/':
+            self.send_error(404);return
+        form=parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode())
+        key=form.get('key',[''])[0];Fixture.submitted_keys.append(key)
+        if key=='fixture-paid-key':
+            if Fixture.post_challenge:Fixture.account_challenge=True
+            self.send_response(303);self.send_header('Set-Cookie','accountSession=paid; Path=/; Max-Age=3600; SameSite=Lax')
+            self.send_header('Location','/account/');self.end_headers()
+        else:
+            payload=b'<div class="text-red-500">Invalid key</div><form method="post" action="/account/"><input name="key" type="password"><button>Log in</button></form>'
+            self.send_response(200);self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload)
     def log_message(self,*_):pass
     def do_GET(self):
         path=urlparse(self.path).path
         payload=b'';mime='text/html'
-        if path=='/search':
+        if path=='/account/':
+            if Fixture.account_challenge:
+                payload=b'<title>CAPTCHA</title><input id="answer">'
+            elif 'accountSession=paid' in self.headers.get('Cookie',''):
+                payload=b"<h1>Account</h1><form onsubmit=\"window.submitForm(event, '/dyn/account/logout/')\"><button>Log out</button></form><div>Membership <a href='/donate?tier=1'>Extend</a></div>"
+            else:
+                payload=b'<form method="post" action="/account/"><input name="key" type="password"><button>Log in</button></form>'
+        elif path=='/search':
             query=parse_qs(urlparse(self.path).query)
             assert query['ext']==['pdf','epub'],query
             assert query['check']==['1'],query
@@ -42,6 +64,7 @@ class Fixture(BaseHTTPRequestHandler):
             payload=f'''<div class="font-semibold text-2xl">Integration Book</div>
             <div class="text-gray-800 font-semibold">English [en], PDF, 1 MB</div>
             <div class="js-md5-top-box-description">10 pages</div>
+            <div><h3>Fast downloads</h3><a class="js-download-link" href="/get/fast.pdf">Fast server 1</a></div>
             <div><h3>Slow downloads</h3><a class="js-download-link" href="/slow_download/{book_id}/0/0">Slow server 1</a>
             <a class="js-download-link" href="/slow_download/{book_id}/0/1">Slow server 2</a></div>'''.encode()
         elif path.startswith('/slow_download/'):
@@ -52,7 +75,7 @@ class Fixture(BaseHTTPRequestHandler):
                 payload=b'<p class="text-xl font-bold"><a href="/copy/book">Download now</a></p>'
                 # Real AA uses absolute download URLs.
                 payload=payload.replace(b'/copy/book',f'http://127.0.0.1:{self.server.server_port}/copy/book'.encode())
-        elif path=='/get/book.pdf':
+        elif path in ('/get/book.pdf','/get/fast.pdf'):
             payload=PDF;mime='application/pdf'
         elif path=='/copy/book':
             file_url=f'http://127.0.0.1:{self.server.server_port}/get/book.pdf'
@@ -70,9 +93,9 @@ class Fixture(BaseHTTPRequestHandler):
             self.send_error(404);return
         self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(payload)))
         if path=='/search':self.send_header('Set-Cookie','fixtureSession=yes; Path=/; Max-Age=3600; SameSite=Lax')
-        if path=='/get/book.pdf':self.send_header('Content-Disposition','attachment; filename="download"')
+        if path in ('/get/book.pdf','/get/fast.pdf'):self.send_header('Content-Disposition','attachment; filename="download"')
         self.end_headers()
-        if path=='/get/book.pdf':
+        if path in ('/get/book.pdf','/get/fast.pdf'):
             for offset in range(0,len(payload),65536):
                 self.wfile.write(payload[offset:offset+65536]);self.wfile.flush();time.sleep(0.12)
         else:self.wfile.write(payload)
@@ -113,6 +136,56 @@ def main():
             assert browser.pending.suffix=='.pdf'
             assert any(p.get('bytes',0)>0 and p['state']=='downloading' for p in progress),progress
             assert any(p.get('total',0)>0 for p in progress),progress
+            # Exercise the real browser form, not a mocked login API.
+            Fixture.account_challenge=True
+            reply=browser.login('fixture-paid-key')
+            assert reply['browser'] and not browser.account['signed_in'],reply
+            assert not browser.verification_ready()
+            Fixture.account_challenge=False
+            browser.go(base+'/account/')
+            assert browser.verification_ready()
+            reply=browser.resume_account()
+            assert reply['account']['signed_in'],reply
+            assert Fixture.submitted_keys==['fixture-paid-key'],Fixture.submitted_keys
+            details=browser.details(result['books'][0]['url'])
+            assert details['mode']=='fast' and len(details['links'])==1,details
+            assert '/get/fast.pdf' in details['links'][0]['url'],details
+            try:
+                browser.start(base+'/slow_download/'+book_id+'/0/0')
+                raise AssertionError('stale slow link accepted in fast mode')
+            except ValueError:pass
+            # A direct fast file uses the same transfer/import path as slow files.
+            browser.pending.unlink();browser.selected_url=None
+            status=browser.start(details['links'][0]['url'])
+            for _ in range(50):
+                if status['state']=='complete':break
+                time.sleep(0.2);status=browser.status()
+            assert status['state']=='complete' and browser.pending.read_bytes()==PDF,status
+            # Reuse a persisted session without resubmitting the secret.
+            reply=browser.login('fixture-paid-key',reuse=True)
+            assert reply['account']['signed_in'] and len(Fixture.submitted_keys)==1,reply
+            reply=browser.login('fixture-invalid-key')
+            assert not reply['account']['signed_in'] and 'not accepted' in reply['message'],reply
+            details=browser.details(result['books'][0]['url'])
+            assert details['mode']=='slow' and len(details['links'])==2,details
+            Fixture.post_challenge=True
+            reply=browser.login('fixture-paid-key')
+            assert reply['browser'] and browser.pending_key is None,reply
+            Fixture.account_challenge=False;Fixture.post_challenge=False
+            browser.go(base+'/account/')
+            reply=browser.resume_account()
+            assert reply['account']['signed_in'],reply
+            submitted_count=len(Fixture.submitted_keys)
+            browser.close()
+            browser=engine.Browser(f'http://127.0.0.1:{driverport}',Path(tmp)/'profile',Path(tmp)/'downloads')
+            reply=browser.login('fixture-paid-key',reuse=True)
+            assert reply['account']['signed_in'] and len(Fixture.submitted_keys)==submitted_count,reply
+            browser.logout()
+            assert not browser.account['signed_in']
+            browser.go(base+'/account/')
+            assert not engine.parse_account(browser.html())['signed_in']
+            # Restore the unrelated session cookie for the restart check below.
+            browser.search('Integration Book',1)
             browser.go(base+'/captcha')
             frame=browser.frame();assert frame['image'].startswith('data:image/jpeg;base64,')
             assert base64.b64decode(frame['image'].split(',',1)[1]).startswith(b'\xff\xd8')
@@ -136,7 +209,7 @@ def main():
             cookies=browser.call('GET','/cookie')
             assert any(c['name']=='fixtureSession' and c['value']=='yes' for c in cookies),'persistent cookie was lost after restarting Chromium'
             browser.close();browser=None
-            print('Chromium integration passed: parsing, session covers, slow links, countdown, PDF download, JPEG frames, verification input and cookies across browser restarts')
+            print('Chromium integration passed: parsing, session covers, slow links, countdown, PDF download, JPEG frames, verification input, paid login, fast download, invalid keys, login CAPTCHAs, sign-out and cookies across browser restarts')
     finally:
         if browser:browser.close()
         driver.terminate();driver.wait(timeout=10)

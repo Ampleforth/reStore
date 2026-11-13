@@ -50,8 +50,23 @@ Browser restarts are not a durable download queue.
 Persistent browser cookies are enabled, including third-party cookies needed by
 some verification frames. All requests and files use the tablet's own network
 connection. Search retains `check=1`. reStore does not solve CAPTCHAs or bypass
-server countdowns. Paid-account secret-key login and fast links are not part of
-v0.1.1.
+server countdowns.
+
+Account login uses the site's existing password POST form in the same Chromium
+session. The optional secret key is stored alongside the download-folder setting
+in an atomically replaced, mode-0600 JSON file. QML gets a `hasSecretKey` boolean,
+not the saved key. The Go service injects the key into the authenticated local
+worker request; the worker submits it only on the configured site's account
+origin. WebDriver login errors are replaced with messages that cannot echo form
+arguments. CAPTCHA interruptions retain the pending login in memory and resume
+through the existing verification interface. Startup reuses a signed-in cookie
+session where possible; explicit login can replace an existing account.
+
+Confirmed sign-in selects parsed fast links; guests and failed logins select slow
+links. Both use the same download validation, progress and native import path.
+Changing accounts clears allowed download links so a stale selection cannot start.
+Removing the key clears the site's browser cookies. Account support ships in
+v0.2.0 and uses browser login and parsed fast links, not the paid JSON API.
 
 ## Exit and performance
 

@@ -13,7 +13,11 @@ layout with grayscale covers. Everything runs on the tablet.
   the search.
 - Shows covers, titles, authors, format, size and available publisher, language,
   year and page metadata. Missing page counts are marked unavailable.
-- Lists the book's slow download servers in a dropdown above **Download**.
+- Lists slow download servers for guests, or fast servers after account login,
+  in a dropdown above **Download**.
+- Saves an optional secret key in Settings and signs in when the app opens.
+  Key entry is visible while typing; the saved key is never displayed.
+  Paid fast downloads remain subject to the account's membership and quota.
 - Displays the site's countdown, transfer progress and received bytes. Files named
   simply `download` are recognized by their PDF/EPUB contents.
 - Opens interactive verification on the tablet. Tap a CAPTCHA text field to open
@@ -25,9 +29,16 @@ layout with grayscale covers. Everything runs on the tablet.
   folder selected under **Settings → Download books to**.
 - Reuses a finished cached download when its MD5 matches the selected book.
 
-The home screen displays: “Please consider donating to Anna's Archive to support
-the largest truly open library in human history.” This is plain text, not a link.
+The home screen first encourages readers to compensate authors by buying books,
+supporting their work or requesting a library purchase. It then explains that
+Anna's Archive membership donations provide fast downloads without a waitlist,
+with tier-based daily limits, and how to use them with a secret key in reStore.
+Some tiers offer reduced browser verification; CAPTCHAs can still appear in the
+app. Both notices use centered headings, lighter body text and a bordered membership
+panel, and can be scrolled on smaller screens.
 reStore is independent of Anna's Archive.
+
+Account support is included in v0.2.0. See the [account setup guide](docs/USER_GUIDE.md#use-a-paid-account).
 
 ## Requirements
 
@@ -47,9 +58,14 @@ are prerequisites and are not included in this package.
 
 ## Install
 
-Download `reStore-0.1.1-<architecture>.tar.gz` from the
-[v0.1.1 release](https://github.com/Ampleforth/reStore/releases/tag/v0.1.1)
-once published. Choose `armv7` for reMarkable 1/2 or `aarch64` for newer tablets.
+**Start with the [complete installation guide](docs/INSTALLATION.md)** for separate
+Windows, macOS and Linux steps, prerequisites, checksum verification, first-time
+setup, upgrades, backups and rollback. You do not need to build packages yourself.
+
+
+Download `reStore-0.2.0-<architecture>.tar.gz` from the
+[v0.2.0 release](https://github.com/Ampleforth/reStore/releases/tag/v0.2.0)
+Choose `armv7` for reMarkable 1/2 or `aarch64` for newer tablets.
 Verify it against the release's `SHA256SUMS`.
 
 The archive contains `archive-books/`. Install that directory under
@@ -66,17 +82,24 @@ Vellum package repository. This does not mean reStore is already in its index.
 
 ## Screenshots
 
+![Account settings with a masked saved key](docs/settings.png)
+
+
 These are regenerated previews of the real QML interface with illustrative
 metadata and covers, not photographs of live searches or CAPTCHAs.
 
 | Screen | Preview |
 |---|---|
-| Home | [Large donation message and search box](docs/home.png) |
+| Home | [Author support, membership notice and search box](docs/home.png) |
 | Results | [Multiple books and grayscale covers](docs/results.png) |
 | Book | [Metadata and download button](docs/book.png) |
+| Membership | [Fast download links](docs/fast.png) |
 | Server selection | [Download link dropdown](docs/links.png) |
 | Waiting | [Server countdown](docs/countdown.png) |
 | Transfer | [Download progress](docs/progress.png) |
+| Import | [Import destination and completed progress](docs/importing.png) |
+| Account | [Secret-key settings](docs/settings.png) |
+| Key entry | [Visible example key while typing](docs/account-keyboard.png) |
 | Destination | [My files folder browser](docs/folders.png) |
 | Search input | [Calendar-style keyboard](docs/keyboard.png) |
 | Verification | [Browser and instructions](docs/browser.png) |

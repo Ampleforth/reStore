@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0
+
+- Show finishing/import progress with the destination folder, retain the completed
+  transfer bar, and separate background status polling from the UI busy state to
+  stop Book details and other controls flashing on every progress refresh.
+- Show the secret key while typing in the keyboard so entry can be checked for
+  typos; keep the draft masked in Settings and never display the saved key.
+- Put author support first on the home screen, followed by a donation notice
+  explaining membership fast downloads and how to use them in reStore. Keep both
+  notices readable with centered headings, lighter body text and a bordered
+  membership panel, and allow scrolling on smaller screens.
+- Replace generic JSON parse failures with endpoint/status diagnostics, return
+  JSON for unknown API routes and briefly retry startup settings reads when the
+  local backend is unavailable.
+- Add a masked account secret-key field, private persistence, startup login,
+  cookie-session reuse, retry and removal controls.
+- Resume login through the existing CAPTCHA view, including verification after
+  form submission, and sanitize sign-in errors to avoid exposing keys.
+- Show fast download links after confirmed login and keep slow links for guests
+  and failed logins. Membership and download quotas remain enforced by the site.
+- Cover account switching, invalid keys, login challenges and direct fast transfers
+  with the bundled Chromium integration fixture.
+
 ## 0.1.1
 
 - Add native aarch64 backend and locked ARM64 browser runtime alongside ARMv7.
@@ -13,7 +36,6 @@
 ## 0.1.0
 
 Initial public release for reMarkable 2.
-
 - Native EPUB/PDF search, grayscale covers, book metadata and slow-server dropdown.
 - On-tablet Chromium with persistent cookies, interactive CAPTCHA view, automatic
   keyboard focus detection and continuation after accepted verification.

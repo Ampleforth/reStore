@@ -2,6 +2,10 @@
 
 ## Install or update
 
+For first-time setup, use the [complete Windows, macOS and Linux installation
+guide](INSTALLATION.md). It includes prerequisites, checksums, file transfer,
+upgrades, backups and rollback. The steps below summarize installation.
+
 1. Install XOVI and AppLoad using their own instructions. This release builds for ARMv7 and aarch64. Hardware testing used
    reMarkable 2 firmware 3.27.3.0 and AppLoad 0.5.3.
 2. Download the matching release archive (`armv7` for reMarkable 1/2;
@@ -26,16 +30,42 @@ folder you want and select it. These are your reMarkable library folders, not
 Linux directories. The setting is retained between runs. If a selected folder
 is deleted, choose another destination before downloading.
 
+## Use a paid account
+
+Open **Settings**, tap **Enter secret key**, enter your Anna's Archive secret key,
+then hide the keyboard and tap **Save and log in**. The keyboard shows the key as you type so you can check for typos. The Settings
+field masks the draft, and the saved key is never displayed. The saved key is used automatically each time reStore opens; an existing
+signed-in cookie session is reused when available. **Retry login** submits the
+saved key again if needed. An invalid key leaves slow downloads available.
+
+If login requires a CAPTCHA, solve it in the verification view. The app continues
+when it recognizes the account page; **Continue** is the fallback. Once signed
+in, book details show **Fast downloads** and the fast-server selector. An active
+membership and remaining download quota are still required by the website. If no
+fast links are available, reStore reports that rather than substituting slow links.
+Signing in does not guarantee fewer CAPTCHA checks.
+
+**Remove key** erases the saved key and clears this site's browser cookies, then
+returns the app to slow downloads. This also clears the site's CAPTCHA cookies.
+The key is stored as plaintext in the tablet's private, owner-readable configuration
+file (`/home/root/.config/archive-books/config.json`, mode `0600`); it is not encrypted.
+The settings API reports only whether a key is saved and never returns its value.
+Keep configuration and browser profiles out of bug reports and shared backups.
+
 ## Search and download
 
 Tap the search box, type a title, author or ISBN, then press keyboard **Done**
 or **Search**. Results contain EPUB and PDF editions only. Open a result to see
-its metadata, choose a slow server in the dropdown, then press **Download**.
+its metadata, choose a slow server (or a fast server when signed in) in the dropdown, then press **Download**.
 
 A countdown follows the website's timer. Once the server begins transferring,
 the app shows a progress bar and received bytes. Percentages appear when the
 server provides a total size. The activity bar does not estimate a percentage
 when the total is unknown.
+
+At 100%, the status changes to **Finishing download** until the browser confirms
+the transfer is complete, then **Importing into My files / …** shows the selected
+folder while import is underway. The completed progress bar remains at 100%.
 
 After transfer, reStore validates the file and asks the native importer to add it
 to the chosen folder. The filename is based on the selected book's title plus
