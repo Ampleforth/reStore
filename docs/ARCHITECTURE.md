@@ -14,10 +14,11 @@ download page needs the user's attention.
 
 ## Local runtime
 
-Debian ARMhf packages are extracted into the app's private `runtime/`. They are
+Debian ARMhf (ARMv7) or ARM64 (aarch64) packages are extracted into the app's private `runtime/`. They are
 not installed into `/usr` on the tablet. Chromium, ChromeDriver, Python, Beautiful
 Soup and their libraries are bundled. Versions, URLs and SHA-256 hashes are in
-`packaging/runtime.lock.json` and `runtime/packages.json` in the binary bundle.
+the two architecture-specific files `packaging/runtime.lock.json` and
+`packaging/runtime.aarch64.lock.json`, plus `runtime/packages.json` in the binary bundle.
 
 The backend creates a private mount namespace and chroot, supplies its own proc,
 dev and temporary mounts, then drops the browser worker to UID/GID 65534.
@@ -50,7 +51,7 @@ Persistent browser cookies are enabled, including third-party cookies needed by
 some verification frames. All requests and files use the tablet's own network
 connection. Search retains `check=1`. reStore does not solve CAPTCHAs or bypass
 server countdowns. Paid-account secret-key login and fast links are not part of
-v0.1.0.
+v0.1.1.
 
 ## Exit and performance
 

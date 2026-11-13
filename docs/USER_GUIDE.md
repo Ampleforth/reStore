@@ -2,9 +2,10 @@
 
 ## Install or update
 
-1. Install XOVI and AppLoad using their own instructions. This release supports
-   reMarkable 2; development used firmware 3.27.3.0 and AppLoad 0.5.3.
-2. Download the ARMv7 release archive and `SHA256SUMS`. On your computer, place them
+1. Install XOVI and AppLoad using their own instructions. This release builds for ARMv7 and aarch64. Hardware testing used
+   reMarkable 2 firmware 3.27.3.0 and AppLoad 0.5.3.
+2. Download the matching release archive (`armv7` for reMarkable 1/2;
+   `aarch64` for newer models) and `SHA256SUMS`. On your computer, place them
    together and run `sha256sum --ignore-missing -c SHA256SUMS`.
 3. Extract the archive. Its `archive-books` directory belongs under
    `/home/root/xovi/exthome/appload/` on the tablet. Use your usual visible SSH or

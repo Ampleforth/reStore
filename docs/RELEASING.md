@@ -1,6 +1,6 @@
 # Release and Vellum packaging
 
-The initial repository is `Ampleforth/reStore`, version `0.1.0`. Release preparation
+The initial repository is `Ampleforth/reStore`, version `0.1.1`. Release preparation
 is local; publishing the repository/tag/assets is a separate action.
 
 ## Prepare assets
@@ -13,10 +13,10 @@ is local; publishing the repository/tag/assets is a separate action.
 
 | Asset | Purpose |
 |---|---|
-| `reStore-0.1.0-source.tar.gz` | Allowlisted reStore source under `reStore-0.1.0/`, including docs, tests, fonts and runtime lock |
-| `reStore-0.1.0-armv7.tar.gz` | Installable `archive-books/`, including the static backend, QML resources and private Debian runtime |
+| `reStore-0.1.1-source.tar.gz` | Allowlisted reStore source under `reStore-0.1.1/`, including docs, tests, fonts and runtime lock |
+| `reStore-0.1.1-armv7.tar.gz` / `reStore-0.1.1-aarch64.tar.gz` | Architecture-specific installable `archive-books/`, including the static backend, QML resources and private Debian runtime |
 | `VELBUILD` | Generated, checksum-pinned Vellum recipe |
-| `SHA256SUMS` | SHA-256 checksums of the three assets above |
+| `SHA256SUMS` | SHA-256 checksums of the four assets above |
 
 The archives use normalized ownership/timestamps. Source inputs are explicitly
 allowlisted; `.git`, `dist`, Python caches, local configuration, tokens, logs and
@@ -43,9 +43,11 @@ Any source edit after generation requires generating the assets again.
 
 The recipe follows the supplied
 [calendar reference commit](https://github.com/Ampleforth/vellum/commit/21475104e53ab6b3f797d68c1466bb6e0b54928c):
-ARMv7, the Golang toolchain image, a Debian Qt `rcc` path, explicit file modes and
-license notices under `/home/root/.vellum/licenses/restore/`. It also carries
-`rm2` compatibility and `!check !fhs !strip` options used by the calendar package.
+the Golang toolchain image, Debian Qt `rcc` path, explicit file modes and license
+notices under `/home/root/.vellum/licenses/restore/`. It now targets both ARMv7
+and aarch64, with individual install calls and the standard SOURCES format requested in
+Vellum review. The architecture comes from `CARCH`; no device-model restriction
+is imposed by the package.
 The source build runs its own Go/Python checks and verifies locked Debian package
 hashes. Runtime symlinks and executable modes are retained. No reboot, service
 restart, system-root write or postinstall script is included.
@@ -76,7 +78,7 @@ initialization. Also copy the generated `packaging/vellum/VELBUILD` into that
 checkout. Do not add `dist/` or private tablet files to Git.
 
 Push the reviewed source to `https://github.com/Ampleforth/reStore`, create tag
-`v0.1.0`, and attach the four files in `dist/release/` to the GitHub release. The
+`v0.1.1`, and attach the five files in `dist/release/` to the GitHub release. The
 checked-in workflow can prepare fresh assets for a tag or manual invocation; it
 uploads a workflow artifact and does not publish automatically. Preserve the
 exact source asset referenced by the Vellum checksum.

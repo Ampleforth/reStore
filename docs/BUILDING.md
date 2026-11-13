@@ -8,13 +8,13 @@ library are required. Runtime extraction does not install Debian packages into
 host system directories or run their maintainer scripts.
 
 ```sh
-./scripts/build.sh
+RESTORE_ARCH=armv7 ./scripts/build.sh
+RESTORE_ARCH=aarch64 ./scripts/build.sh
 ```
 
-The script tests the Go and Python code, cross-compiles a static Linux ARMv7
-backend, compiles QML resources and assembles the private runtime. It checks the
+The script tests the Go and Python code, cross-compiles a static Linux backend for the selected architecture, compiles QML resources and assembles the private runtime. It checks the
 runtime package lock, install permissions and absence of private runtime data
-before creating `dist/restore-armv7.tar.gz`.
+before creating `dist/restore-<architecture>.tar.gz`.
 
 Optional paths:
 
@@ -28,17 +28,20 @@ when preparing a release or Vellum package.
 
 ## Runtime lock
 
-`packaging/runtime.lock.json` pins the 147 Debian ARMhf packages in v0.1.0, with
+`packaging/runtime.lock.json` pins the ARMhf packages;
+`packaging/runtime.aarch64.lock.json` pins ARM64 packages. Both record
 versions, URLs and SHA-256 hashes. The runtime builder verifies every downloaded
 package before extraction. It fetches only locked packages by default and caches
-packages outside the source tree. The full runtime is approximately 400 MiB.
+packages outside the source tree. Runtimes occupy roughly 400–550 MiB depending on architecture.
 
 ```sh
-python3 scripts/build-runtime.py --output dist/archive-books/runtime
+python3 scripts/build-runtime.py --arch armv7
+python3 scripts/build-runtime.py --arch aarch64
 ```
 
 For a deliberate runtime update, assemble into a new output directory with
-`--refresh`, review its `packages.json`, update the lock, and repeat hardware
+`--arch <architecture> --refresh --write-lock`, review its `packages.json` and
+updated lock, and repeat hardware
 acceptance testing. Refreshing is not part of a normal release. A vanished Debian
 package URL must be resolved without silently accepting a different version or
 checksum. Do not replace the lock with live browser state.
@@ -89,3 +92,27 @@ records cover attribution. Optional `QML=/path/to/qml` overrides the renderer.
 See [RELEASING.md](RELEASING.md) for the source archive, binary archive, checksum
 manifest and Vellum recipe. The GitHub workflow prepares downloadable workflow
 artifacts; it does not create a public release, push commits or reboot a tablet.
+
+## Architecture selection and runtime validation
+
+`RESTORE_ARCH` accepts `armv7` or `aarch64`. If unset, the build uses Vellum's
+`CARCH`, falling back to `armv7` for manual builds. It maps to Go `arm`/`GOARM=7`
+or Go `arm64`, and to Debian `armhf` or `arm64`. Outputs live in
+`dist/<architecture>/archive-books/` so the two targets cannot reuse each other's
+runtime. An unsupported architecture fails instead of silently creating ARMv7.
+
+The bundle checker verifies ELF machine/class for the backend, Chromium,
+ChromeDriver and Python and compares the runtime against the selected lock.
+The release script requires both complete bundles and creates two binary archives.
+The browser versions may differ between Debian architectures; each is tested
+against the same controlled fixture suite.
+
+```sh
+./scripts/runtime-smoke.sh aarch64
+./scripts/runtime-smoke.sh armv7
+```
+
+These tests run the bundled Python, Chromium, ChromeDriver and libraries as UID
+65534 in disposable Docker containers. A non-native target needs Docker/QEMU
+binfmt support; the GitHub workflow configures this in its ephemeral ARMv7 test
+runner. The script does not install an emulator on the host or touch a tablet.

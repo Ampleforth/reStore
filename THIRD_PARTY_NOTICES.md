@@ -10,7 +10,7 @@ those components; bundled Debian packages keep their individual licenses.
 | Go runtime and standard library | BSD-3-Clause, `licenses/Go-BSD-3-Clause.txt` in the binary bundle; [Go source distributions](https://go.dev/dl/) |
 | DejaVu fonts | `qml/fonts/LICENSE-DejaVu.txt` |
 | Noto Symbols font | SIL Open Font License, `qml/fonts/LICENSE-Noto.txt` |
-| Chromium, ChromeDriver, Python, Beautiful Soup and runtime libraries | Debian Bookworm ARMhf packages, with exact versions, download URLs and SHA-256 hashes in `packaging/runtime.lock.json` and the bundle's `runtime/packages.json` |
+| Chromium, ChromeDriver, Python, Beautiful Soup and runtime libraries | Debian Bookworm ARMhf/ARM64 packages, with exact versions, download URLs and SHA-256 hashes in `packaging/runtime.lock.json` / `packaging/runtime.aarch64.lock.json` and the bundle's `runtime/packages.json` |
 
 Debian package copyright and license notices are retained under
 `runtime/usr/share/doc/<package>/copyright`. Debian publishes corresponding

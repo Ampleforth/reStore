@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+- Add native aarch64 backend and locked ARM64 browser runtime alongside ARMv7.
+- Select builds from Vellum CARCH, isolate target outputs and reject mismatched
+  backend/browser/Python ELF architectures and package locks.
+- Generate separate ARMv7 and aarch64 binary release archives.
+- Apply Vellum review feedback: explicit install calls, standard SOURCES format,
+  remove the unnecessary runtime-copy comment and remove model-specific wording.
+- Add bundled-runtime browser tests and architecture regression coverage.
+
 ## 0.1.0
 
 Initial public release for reMarkable 2.

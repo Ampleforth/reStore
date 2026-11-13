@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble a private ARMv7 browser root from Debian packages; never install them."""
+"""Assemble a private architecture-specific browser root from Debian packages; never install them."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
@@ -9,25 +9,32 @@ from pathlib import Path
 import re
 import subprocess
 from urllib.request import urlopen
+from architectures import TARGETS, lock_path, check_elf, check_package_architecture
 
-SOURCES=[('https://deb.debian.org/debian/','dists/bookworm/main/binary-armhf/Packages.xz'),
-         ('https://security.debian.org/debian-security/','dists/bookworm-security/main/binary-armhf/Packages.xz')]
+REPOSITORIES=[('https://deb.debian.org/debian/','dists/bookworm/main/binary-{debian}/Packages.xz'),
+              ('https://security.debian.org/debian-security/','dists/bookworm-security/main/binary-{debian}/Packages.xz')]
 ROOTS=['gcc-12-base','chromium','chromium-common','chromium-driver','python3.11-minimal','libpython3.11-stdlib','python3-bs4','fonts-dejavu-core','fontconfig-config','ca-certificates']
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true',help='resolve new Debian versions instead of the release lock');p.add_argument('--output',type=Path,default=Path('dist/archive-books/runtime'));p.add_argument('--cache',type=Path,default=Path('/tmp/restore-runtime-cache'));args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--arch',choices=TARGETS,default='armv7');p.add_argument('--write-lock',action='store_true',help='save explicitly refreshed package metadata');p.add_argument('--refresh',action='store_true',help='resolve new Debian versions instead of the release lock');p.add_argument('--output',type=Path,default=None);p.add_argument('--cache',type=Path,default=Path('/tmp/restore-runtime-cache'));args=p.parse_args()
+    if args.write_lock and not args.refresh:p.error('--write-lock requires --refresh')
+    root=Path(__file__).resolve().parents[1]
+    args.output=args.output or root/'dist'/args.arch/'archive-books/runtime'
+    debian=TARGETS[args.arch]['debian']
     args.cache.mkdir(parents=True,exist_ok=True);args.output.mkdir(parents=True,exist_ok=True)
-    lock=Path(__file__).resolve().parents[1]/'packaging/runtime.lock.json'
-    if lock.exists() and not args.refresh:
+    lock=lock_path(root,args.arch)
+    if not lock.exists() and not args.refresh:raise RuntimeError(f'Missing release lock for {args.arch}; use --refresh --write-lock deliberately')
+    if not args.refresh:
         selected={}
         for record in json.loads(lock.read_text()):
             pkg=dict(record);pkg['base']=pkg['URL'][:-len(pkg['Filename'])]
             selected[pkg['Package']]=pkg
     else:
         packages={}
-        for index,(base,path) in enumerate(SOURCES):
-            cache=args.cache/f'index-{index}.xz'
-            if not cache.exists():
+        for index,(base,path) in enumerate(REPOSITORIES):
+            cache=args.cache/f'index-{args.arch}-{index}.xz'
+            path=path.format(debian=debian)
+            if args.refresh or not cache.exists():
                 with urlopen(base+path,timeout=90) as r:cache.write_bytes(r.read())
             for block in lzma.decompress(cache.read_bytes()).decode().split('\n\n'):
                 fields={};key=None
@@ -49,13 +56,14 @@ def main():
                 for candidate in alternatives:
                     if candidate in packages and (candidate.startswith(('lib','python','fonts-','fontconfig')) or candidate in ('chromium','chromium-common','zlib1g')):
                         queue.append(candidate);break
+    check_package_architecture(list(selected.values()),args.arch)
     def download(item):
         name,pkg=item;path=args.cache/Path(pkg['Filename']).name
         if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest()!=pkg['SHA256']:
             with urlopen(pkg['base']+pkg['Filename'],timeout=180) as r:path.write_bytes(r.read())
         if hashlib.sha256(path.read_bytes()).hexdigest()!=pkg['SHA256']:raise RuntimeError('Checksum mismatch: '+name)
         return name,path
-    print(f'Downloading {len(selected)} ARMv7 runtime packages',flush=True)
+    print(f'Downloading {len(selected)} {args.arch} runtime packages',flush=True)
     with ThreadPoolExecutor(max_workers=8) as pool:downloads=list(pool.map(download,selected.items()))
     for name,deb in downloads:
         members=subprocess.check_output(['bsdtar','-tf',str(deb)],text=True).splitlines()
@@ -74,6 +82,9 @@ def main():
     (args.output/'etc/group').write_text('nogroup:x:65534:\n')
     manifest=[dict({k:pkg[k] for k in ('Package','Version','SHA256','Filename')},URL=pkg['base']+pkg['Filename']) for pkg in selected.values()]
     (args.output/'packages.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    for binary in ('usr/lib/chromium/chromium','usr/bin/chromedriver','usr/bin/python3.11'):
+        check_elf(args.output/binary,args.arch)
+    if args.write_lock:lock.write_text(json.dumps(manifest,indent=2)+'\n')
     print(f'Runtime assembled at {args.output}',flush=True)
 
 if __name__=='__main__':main()

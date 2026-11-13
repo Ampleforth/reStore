@@ -1,6 +1,6 @@
 # reStore
 
-Native book search and downloads for **reMarkable 2**, built with AppLoad and XOVI.
+Native book search and downloads for **reMarkable tablets**, built with AppLoad and XOVI.
 Search Anna's Archive, choose an EPUB or PDF, and import it into a folder in your
 reMarkable library. Search results and book details use a native, high-contrast
 layout with grayscale covers. Everything runs on the tablet.
@@ -33,20 +33,24 @@ reStore is independent of Anna's Archive.
 
 | Item | Supported configuration |
 |---|---|
-| Tablet | reMarkable 2, ARMv7 |
+| Architecture | ARMv7 (reMarkable 1/2) and aarch64 (newer tablets) |
 | Device software | Developed and tested on 3.27.3.0, Qt 6.8.2 |
 | Launcher | XOVI with AppLoad 0.5.3 or later |
 | Connection | Tablet internet access; no companion computer/server during use |
-| Storage | About 400 MiB for the bundled runtime, plus cookies, downloads and imported books |
+| Storage | Roughly 400–550 MiB for the architecture-specific runtime, plus cookies, downloads and imported books |
 
-Other devices and firmware versions have not been validated. AppLoad and XOVI
+The two architectures have separate native backends and Debian runtimes. Physical
+device acceptance is confirmed on reMarkable 2; other models and firmware need
+verification of native import, screen layout and memory use. The lower-memory
+reMarkable 1 especially needs hardware testing. AppLoad and XOVI
 are prerequisites and are not included in this package.
 
 ## Install
 
-Download `reStore-0.1.0-armv7.tar.gz` from the
-[v0.1.0 release](https://github.com/Ampleforth/reStore/releases/tag/v0.1.0)
-once published. Verify it against the release's `SHA256SUMS`.
+Download `reStore-0.1.1-<architecture>.tar.gz` from the
+[v0.1.1 release](https://github.com/Ampleforth/reStore/releases/tag/v0.1.1)
+once published. Choose `armv7` for reMarkable 1/2 or `aarch64` for newer tablets.
+Verify it against the release's `SHA256SUMS`.
 
 The archive contains `archive-books/`. Install that directory under
 `/home/root/xovi/exthome/appload/`, then refresh AppLoad and open **reStore**.
@@ -98,8 +102,8 @@ metadata and covers, not photographs of live searches or CAPTCHAs.
 ```
 
 Build dependencies, exact outputs and optional tool paths are documented in
-[BUILDING.md](docs/BUILDING.md). Runtime package versions and SHA-256 hashes are
-pinned in `packaging/runtime.lock.json`.
+[BUILDING.md](docs/BUILDING.md). Runtime package versions and SHA-256 hashes are pinned separately in
+`packaging/runtime.lock.json` (ARMv7) and `packaging/runtime.aarch64.lock.json`.
 
 ## License and credits
 

@@ -6,7 +6,40 @@ on:
 permissions:
   contents: read
 jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: armv7
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev librsvg2-bin python3-bs4 libarchive-tools
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.arch == 'armv7'
+        with:
+          platforms: arm
+      - name: Build target and run bundled browser test
+        env:
+          RCC: /usr/lib/qt6/libexec/rcc
+          RESTORE_ARCH: ${{ matrix.arch }}
+          RESTORE_ARCHIVE: '0'
+        run: |
+          ./scripts/build.sh
+          ./scripts/runtime-smoke.sh "$RESTORE_ARCH"
   package:
+    needs: runtime
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

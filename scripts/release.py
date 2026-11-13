@@ -39,9 +39,12 @@ sha512=hashlib.sha512(source.read_bytes()).hexdigest()
 recipe=(root/'packaging/vellum/VELBUILD.in').read_text().replace('@VERSION@',version).replace('@SOURCE_SHA512@',sha512)
 (root/'packaging/vellum/VELBUILD').write_text(recipe)
 (output/'VELBUILD').write_text(recipe)
-subprocess.run(['python3',str(root/'scripts/check-bundle.py')],check=True)
-bundle=root/'dist/archive-books'
-archive(output/f'reStore-{version}-armv7.tar.gz',bundle,list(bundle.rglob('*')),'archive-books')
-assets=[source,output/f'reStore-{version}-armv7.tar.gz',output/'VELBUILD']
+assets=[source,output/'VELBUILD']
+for arch in ('armv7','aarch64'):
+    subprocess.run(['python3',str(root/'scripts/check-bundle.py'),'--arch',arch],check=True)
+    bundle=root/'dist'/arch/'archive-books'
+    asset=output/f'reStore-{version}-{arch}.tar.gz'
+    archive(asset,bundle,list(bundle.rglob('*')),'archive-books')
+    assets.append(asset)
 (output/'SHA256SUMS').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in assets))
 print(f'Release prepared in {output}')
