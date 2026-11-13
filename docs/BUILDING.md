@@ -115,4 +115,29 @@ against the same controlled fixture suite.
 These tests run the bundled Python, Chromium, ChromeDriver and libraries as UID
 65534 in disposable Docker containers. A non-native target needs Docker/QEMU
 binfmt support; the GitHub workflow configures this in its ephemeral ARMv7 test
-runner. The script does not install an emulator on the host or touch a tablet.
+runner. QEMU closed the ARMv7 Chromium renderer during session creation, so CI
+uses explicit `--dependencies-only` coverage for that emulated target: backend
+help, Python/SSL/Beautiful Soup and Chromium/ChromeDriver executable startup.
+This does not claim an ARMv7 renderer test. Native aarch64 runs the full suite.
+The script does not install an emulator on the host or touch a tablet.
+
+`tests/runtime-runner/main.go` runs the full browser fixture against a real
+architecture's installed runtime in a temporary private mount namespace. It
+mounts private proc/dev/tmp, drops to UID 65534, uses temporary browser profiles,
+and kills its child process group on exit. It neither replaces the installed app
+nor restarts the UI. Build it for the target and transfer it with the three
+fixture files (`engine/server.py`, `engine/parser.py`, `tests/browser_smoke.py`).
+Run it as root through a visible device terminal:
+
+```sh
+./runner /home/root/xovi/exthome/appload/archive-books/runtime /path/to/fixtures parent
+```
+
+Do not run a second browser while the user's reStore browser is active; check
+available memory first. The helper is a development tool, not installed by Vellum.
+
+For v0.1.1 preparation, the full bundled-browser suite passed natively on an
+ARM64 Linux host and its ARM64 CI runner, and on the reMarkable 2's installed
+ARMv7 runtime using the private fixture runner. These checks cover browser
+behavior and ABI compatibility; they do not prove native document import or
+UI layout on a physical aarch64 tablet.
